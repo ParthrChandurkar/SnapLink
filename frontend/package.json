@@ -1,0 +1,29 @@
+{
+  "name": "snaplink-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "6.0.2",
+    "vite": "8.0.16",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "recharts": "3.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "autoprefixer": "10.5.0",
+    "eslint": "10.5.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.3",
+    "globals": "17.6.0",
+    "postcss": "8.5.15",
+    "tailwindcss": "3.4.19"
+  }
+}

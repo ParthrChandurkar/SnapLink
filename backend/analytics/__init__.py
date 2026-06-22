@@ -1,0 +1,2 @@
+"""SnapLink analytics Lambda package."""
+

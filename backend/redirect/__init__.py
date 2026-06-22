@@ -1,0 +1,2 @@
+"""SnapLink redirect Lambda package."""
+

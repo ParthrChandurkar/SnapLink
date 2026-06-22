@@ -1,0 +1,414 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: SnapLink serverless URL shortener and analytics platform
+
+Parameters:
+  CorsOrigin:
+    Type: String
+    Default: "*"
+    Description: Allowed frontend origin. Set this to the CloudFront or Vercel URL in production.
+  ShortBaseUrl:
+    Type: String
+    Default: ""
+    Description: Optional public redirect base URL, without a trailing slash.
+  AlarmEmail:
+    Type: String
+    Default: ""
+    Description: Optional email address that receives Lambda error-rate alarms.
+
+Conditions:
+  HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
+
+Globals:
+  Function:
+    Runtime: python3.11
+    Architectures:
+      - arm64
+    MemorySize: 128
+    Timeout: 10
+    Tracing: Active
+    Environment:
+      Variables:
+        URLS_TABLE_NAME: !Ref UrlsTable
+        CLICKS_TABLE_NAME: !Ref ClicksTable
+        CORS_ORIGIN: !Ref CorsOrigin
+        POWERTOOLS_SERVICE_NAME: snaplink
+
+Resources:
+  SnapLinkApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref CorsOrigin
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        MaxAge: 600
+
+  ShortenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: snaplink-shorten
+      CodeUri: ../backend/
+      Handler: shorten.handler.lambda_handler
+      Role: !GetAtt ShortenFunctionRole.Arn
+      Environment:
+        Variables:
+          SHORT_BASE_URL: !Ref ShortBaseUrl
+      Events:
+        ShortenRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SnapLinkApi
+            Path: /shorten
+            Method: POST
+
+  RedirectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: snaplink-redirect
+      CodeUri: ../backend/
+      Handler: redirect.handler.lambda_handler
+      Role: !GetAtt RedirectFunctionRole.Arn
+      Environment:
+        Variables:
+          GEOLOCATION_API_URL: http://ip-api.com/json
+      Events:
+        RedirectRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SnapLinkApi
+            Path: /{shortcode}
+            Method: GET
+
+  AnalyticsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: snaplink-analytics
+      CodeUri: ../backend/
+      Handler: analytics.handler.lambda_handler
+      Role: !GetAtt AnalyticsFunctionRole.Arn
+      Events:
+        AnalyticsRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SnapLinkApi
+            Path: /analytics/{shortcode}
+            Method: GET
+
+  ShortenFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub snaplink-shorten-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: WriteUniqueShortcodes
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:PutItem
+                Resource: !GetAtt UrlsTable.Arn
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+
+  RedirectFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub snaplink-redirect-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ResolveAndRecordClicks
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt UrlsTable.Arn
+              - Effect: Allow
+                Action: dynamodb:PutItem
+                Resource: !GetAtt ClicksTable.Arn
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+
+  AnalyticsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub snaplink-analytics-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ReadLinkAnalytics
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:GetItem
+                Resource: !GetAtt UrlsTable.Arn
+              - Effect: Allow
+                Action: dynamodb:Query
+                Resource: !GetAtt ClicksTable.Arn
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+
+  UrlsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: snaplink-urls
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: shortcode
+          AttributeType: S
+      KeySchema:
+        - AttributeName: shortcode
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+
+  ClicksTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: snaplink-clicks
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: shortcode
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: shortcode
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  FrontendOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub snaplink-oac-${AWS::StackName}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        HttpVersion: http2and3
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: FrontendS3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt FrontendOriginAccessControl.Id
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: FrontendS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: snaplink-alarms
+
+  AlarmEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlarmEmail
+    Properties:
+      TopicArn: !Ref AlarmTopic
+      Protocol: email
+      Endpoint: !Ref AlarmEmail
+
+  LambdaErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: snaplink-lambda-error-rate
+      AlarmDescription: SnapLink aggregate Lambda error rate exceeded 5 percent over 5 minutes.
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 5
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmTopic
+      Metrics:
+        - Id: errorrate
+          Label: Error rate
+          Expression: IF(invocations>0,100*errors/invocations,0)
+          ReturnData: true
+        - Id: errors
+          Expression: e1+e2+e3
+          ReturnData: false
+        - Id: invocations
+          Expression: i1+i2+i3
+          ReturnData: false
+        - Id: e1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref ShortenFunction
+            Period: 300
+            Stat: Sum
+        - Id: e2
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref RedirectFunction
+            Period: 300
+            Stat: Sum
+        - Id: e3
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref AnalyticsFunction
+            Period: 300
+            Stat: Sum
+        - Id: i1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Invocations
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref ShortenFunction
+            Period: 300
+            Stat: Sum
+        - Id: i2
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Invocations
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref RedirectFunction
+            Period: 300
+            Stat: Sum
+        - Id: i3
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Invocations
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref AnalyticsFunction
+            Period: 300
+            Stat: Sum
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway base URL
+    Value: !Sub "https://${SnapLinkApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"
+  FrontendBucketName:
+    Description: S3 bucket containing the frontend build
+    Value: !Ref FrontendBucket
+  CloudFrontDistributionId:
+    Description: CloudFront distribution ID
+    Value: !Ref FrontendDistribution
+  FrontendUrl:
+    Description: CloudFront-hosted frontend URL
+    Value: !Sub "https://${FrontendDistribution.DomainName}"
