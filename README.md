@@ -2,7 +2,7 @@
 
 SnapLink is a production-ready, serverless URL shortener with click analytics. It creates compact six-character links, redirects visitors with low latency, and presents country, device, browser, referrer, and time-series data in a responsive React dashboard.
 
-> **Live demo:** [Coming soon — add your CloudFront or Vercel URL here](https://example.com)
+> **Live demo:** [https://snaplink-eight.vercel.app](https://snaplink-eight.vercel.app)
 
 ## Architecture
 
