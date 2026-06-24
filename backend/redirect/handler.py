@@ -9,7 +9,15 @@ from typing import Any
 import boto3
 from botocore.exceptions import ClientError
 
-from shared.utils import CORS_HEADERS, api_response, country_from_ip, parse_user_agent, utc_now
+from shared.utils import (
+    CORS_HEADERS,
+    api_response,
+    client_ip_from_event,
+    country_from_ip,
+    normalise_referrer,
+    parse_user_agent,
+    utc_now,
+)
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
@@ -43,10 +51,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     headers = _normalise_headers(event)
     user_agent = headers.get("user-agent", "")
     device, browser = parse_user_agent(user_agent)
-    forwarded_for = headers.get("x-forwarded-for", "")
-    source_ip = forwarded_for.split(",", 1)[0].strip()
-    if not source_ip:
-        source_ip = ((event.get("requestContext") or {}).get("http") or {}).get("sourceIp", "")
+    source_ip = client_ip_from_event(event, headers)
     timestamp = utc_now()
     click = {
         "shortcode": shortcode,
@@ -54,7 +59,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         "country": country_from_ip(source_ip),
         "device": device,
         "browser": browser,
-        "referrer": headers.get("referer", "Direct") or "Direct",
+        "referrer": normalise_referrer(headers.get("referer", "")),
     }
 
     try:
@@ -81,4 +86,3 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         },
         "body": "",
     }
-

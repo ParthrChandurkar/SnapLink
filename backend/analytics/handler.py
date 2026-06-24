@@ -37,7 +37,7 @@ def _query_all_clicks(shortcode: str) -> list[dict[str, Any]]:
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Return summary statistics and chart-ready series for one short link."""
     del context
-    shortcode = (event.get("pathParameters") or {}).get("shortcode")
+    shortcode = (event.get("pathParameters") or {}).get("shortcode") or (event.get("pathParameters") or {}).get("code")
     if not shortcode:
         return api_response(400, {"error": "Shortcode is required."})
 
@@ -60,6 +60,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     countries = Counter(click.get("country", "Unknown") for click in clicks)
     devices = Counter(click.get("device", "Unknown") for click in clicks)
     browsers = Counter(click.get("browser", "Other") for click in clicks)
+    referrers = Counter(click.get("referrer", "Direct") for click in clicks)
     daily = Counter(str(click.get("timestamp", ""))[:10] for click in clicks if click.get("timestamp"))
     total_clicks = int(record.get("click_count", Decimal(0)))
 
@@ -71,8 +72,8 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "created_at": record["created_at"],
             "total_links": 1,
             "total_clicks": total_clicks,
-            "top_country": countries.most_common(1)[0][0] if countries else "—",
-            "top_device": devices.most_common(1)[0][0] if devices else "—",
+            "top_country": countries.most_common(1)[0][0] if countries else "-",
+            "top_device": devices.most_common(1)[0][0] if devices else "-",
             "clicks_over_time": [
                 {"date": date, "clicks": count} for date, count in sorted(daily.items())
             ],
@@ -85,6 +86,8 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             "browsers": [
                 {"browser": browser, "clicks": count} for browser, count in browsers.most_common()
             ],
+            "referrers": [
+                {"referrer": referrer, "clicks": count} for referrer, count in referrers.most_common()
+            ],
         },
     )
-

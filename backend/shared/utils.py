@@ -96,6 +96,35 @@ def parse_user_agent(user_agent: str) -> tuple[str, str]:
     return device, browser
 
 
+def client_ip_from_event(event: dict[str, Any], headers: dict[str, str]) -> str:
+    """Extract the best client IP candidate from proxy and API Gateway metadata."""
+    forwarded_for = headers.get("x-forwarded-for", "")
+    if forwarded_for:
+        return forwarded_for.split(",", 1)[0].strip()
+
+    viewer_address = headers.get("cloudfront-viewer-address", "")
+    if viewer_address:
+        return viewer_address.split(":", 1)[0].strip()
+
+    return str(((event.get("requestContext") or {}).get("http") or {}).get("sourceIp", "")).strip()
+
+
+def normalise_referrer(value: str) -> str:
+    """Reduce a referrer to a stable hostname-sized value for analytics storage."""
+    if not isinstance(value, str) or not value.strip():
+        return "Direct"
+
+    candidate = value.strip()
+    try:
+        parsed = urlparse(candidate)
+    except ValueError:
+        return candidate[:255] or "Direct"
+
+    if parsed.scheme.lower() in {"http", "https"} and parsed.netloc:
+        return parsed.netloc.lower()[:255]
+    return candidate[:255] or "Direct"
+
+
 def country_from_ip(ip_address: str) -> str:
     """Resolve an IP address to a country code through the configured geo API."""
     candidate = ip_address.strip()
@@ -120,4 +149,3 @@ def country_from_ip(ip_address: str) -> str:
     except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
         LOGGER.warning("Geolocation lookup failed", exc_info=True)
     return "Unknown"
-
