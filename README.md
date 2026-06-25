@@ -25,7 +25,7 @@ flowchart LR
     A -. logs and metrics .-> CW
 ```
 
-The shorten Lambda uses a conditional `PutItem`, which is both the collision check and the write. The redirect Lambda reads the URL, records the event, atomically increments its counter, and returns a `301`. A separate read-only analytics Lambda exists because dashboard queries require permissions that should not be added to either write-path role.
+The shorten Lambda uses a conditional `PutItem`, which handles collision protection and persistence in one call. The redirect Lambda reads the URL, records the event, atomically increments the counter, and returns a `301`. A separate read-only analytics Lambda keeps dashboard permissions isolated from the write path.
 
 ## Features
 
@@ -40,25 +40,25 @@ The shorten Lambda uses a conditional `PutItem`, which is both the collision che
 - X-Ray tracing, CloudWatch logs, and a 5-minute aggregate error-rate alarm
 - Repeatable SAM deployment and GitHub Actions CI/CD
 
-## Project structure
+## Project Structure
 
 ```text
 snaplink/
-├── backend/
-│   ├── shorten/handler.py
-│   ├── redirect/handler.py
-│   ├── analytics/handler.py
-│   ├── shared/utils.py
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── App.jsx
-│   │   └── api.js
-│   └── package.json
-├── infrastructure/template.yaml
-├── .github/workflows/deploy.yml
-└── README.md
+|-- backend/
+|   |-- shorten/handler.py
+|   |-- redirect/handler.py
+|   |-- analytics/handler.py
+|   |-- shared/utils.py
+|   `-- requirements.txt
+|-- frontend/
+|   |-- src/
+|   |   |-- components/
+|   |   |-- App.jsx
+|   |   `-- api.js
+|   `-- package.json
+|-- infrastructure/template.yaml
+|-- .github/workflows/deploy.yml
+`-- README.md
 ```
 
 ## Prerequisites
@@ -73,12 +73,19 @@ snaplink/
 
 Run these steps in this exact order from the repository root.
 
-1. Configure the AWS CLI and verify the active identity.
+1. Configure AWS credentials locally.
 
    ```bash
    aws configure
    aws sts get-caller-identity
    ```
+
+   If you see `Unable to locate credentials`, the AWS CLI is not configured for your shell yet. Run `aws configure` again and enter:
+
+   - `AWS Access Key ID`
+   - `AWS Secret Access Key`
+   - `Default region name` such as `us-east-1`
+   - `Default output format` such as `json`
 
 2. Validate and build the serverless application.
 
@@ -87,64 +94,81 @@ Run these steps in this exact order from the repository root.
    sam build --template-file infrastructure/template.yaml
    ```
 
-3. Deploy the backend and infrastructure. On the first deployment, use the guided flow and accept the defaults; provide your frontend origin for `CorsOrigin` when known.
+3. Deploy the backend and infrastructure.
 
    ```bash
    sam deploy --guided --capabilities CAPABILITY_NAMED_IAM
    ```
 
-4. Read the deployed API URL, frontend bucket, CloudFront ID, and frontend URL.
+   Recommended guided values:
+
+   - `Stack Name`: `snaplink-production`
+   - `AWS Region`: `us-east-1`
+   - `CorsOrigin`: your frontend URL, such as your Vercel domain
+   - `ShortBaseUrl`: optional custom short-link domain
+   - `AlarmEmail`: your email for CloudWatch alarm notifications
+
+4. Read the deployed outputs.
 
    ```bash
    aws cloudformation describe-stacks --stack-name snaplink-production --query "Stacks[0].Outputs" --output table
    ```
 
-   If you chose a different stack name during the guided deployment, use it in place of `snaplink-production`.
-
-5. Configure and build the React application using the `ApiUrl` output.
+5. Configure and build the frontend using the `ApiUrl` output.
 
    ```bash
    cd frontend
-   cp .env.example .env
-   # Edit .env and set VITE_API_BASE_URL to the ApiUrl output.
+   copy .env.example .env
    npm install
+   npm run lint
    npm run build
    cd ..
    ```
 
-6. Upload the frontend. Replace the placeholder with the `FrontendBucketName` output.
+   Then set `VITE_API_BASE_URL` inside `frontend/.env` to the deployed `ApiUrl` value.
+
+6. Upload the frontend to S3.
 
    ```bash
    aws s3 sync frontend/dist s3://YOUR_FRONTEND_BUCKET --delete
    ```
 
-7. Invalidate CloudFront. Replace the placeholder with the `CloudFrontDistributionId` output.
+7. Invalidate CloudFront.
 
    ```bash
    aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
    ```
 
-8. Open the `FrontendUrl` stack output. If `AlarmEmail` was supplied, confirm the SNS subscription sent to that address.
+8. Open the `FrontendUrl` stack output and test the full flow.
 
-### Custom short domain
+## Vercel Frontend Deployment
 
-Pass `ShortBaseUrl=https://your-short-domain.example` during deployment after mapping that domain to the API Gateway API. Without this parameter, generated links automatically use the deployed API Gateway URL and work immediately.
+The frontend is also Vercel-ready.
 
-### GitHub Actions
+1. Import the repository into Vercel.
+2. Set the root directory to `frontend`.
+3. Use the Vite framework preset.
+4. Add `VITE_API_BASE_URL` as an environment variable with the deployed SAM `ApiUrl`.
+5. Redeploy the frontend.
+6. If your frontend domain changed, redeploy SAM with `CorsOrigin` set to that Vercel domain.
 
-Add these repository secrets under **Settings → Secrets and variables → Actions**:
+## GitHub Actions
+
+Add these required repository secrets under **Settings -> Secrets and variables -> Actions**:
 
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_REGION`
 
-Every push to `main` validates and deploys SAM, discovers stack outputs, lints/builds React, syncs the build to S3, and invalidates CloudFront. The workflow uses the stack name `snaplink-production`.
+Optional secrets:
 
-### Vercel frontend deployment
+- `CORS_ORIGIN`
+- `SHORT_BASE_URL`
+- `ALARM_EMAIL`
 
-The frontend is also Vercel-ready. Import the repository, set the root directory to `frontend`, framework preset to Vite, and add `VITE_API_BASE_URL` with the SAM `ApiUrl` output. Set the SAM `CorsOrigin` parameter to the final Vercel domain and redeploy the stack.
+Every push to `main` validates and deploys SAM, discovers stack outputs, lints/builds React, syncs the build to S3, uploads `index.html` with no-cache revalidation, and invalidates CloudFront.
 
-## API documentation
+## API Documentation
 
 All JSON responses include CORS headers. Replace `API_URL` below with the `ApiUrl` CloudFormation output.
 
@@ -161,7 +185,7 @@ Content-Type: application/json
 {"url":"https://example.com/a/very/long/path"}
 ```
 
-Success — `201 Created`:
+Success `201 Created`:
 
 ```json
 {
@@ -172,7 +196,7 @@ Success — `201 Created`:
 }
 ```
 
-Invalid URL — `400 Bad Request`:
+Invalid URL `400 Bad Request`:
 
 ```json
 {"error":"A valid http or https URL is required."}
@@ -188,7 +212,7 @@ curl -X POST "$API_URL/shorten" -H "Content-Type: application/json" -d '{"url":"
 
 Records a click and redirects to the original URL.
 
-Success — `301 Moved Permanently`:
+Success `301 Moved Permanently`:
 
 ```http
 HTTP/1.1 301 Moved Permanently
@@ -196,7 +220,7 @@ Location: https://example.com/a/very/long/path
 Cache-Control: no-store
 ```
 
-Missing shortcode — `404 Not Found`:
+Missing shortcode `404 Not Found`:
 
 ```json
 {"error":"Short URL not found."}
@@ -206,7 +230,7 @@ Missing shortcode — `404 Not Found`:
 
 Returns summary metrics and chart-ready data for a link.
 
-Success — `200 OK`:
+Success `200 OK`:
 
 ```json
 {
@@ -220,7 +244,8 @@ Success — `200 OK`:
   "clicks_over_time": [{"date":"2026-06-22","clicks":3}],
   "clicks_by_country": [{"country":"IN","clicks":3}],
   "devices": [{"device":"Mobile","clicks":2},{"device":"Desktop","clicks":1}],
-  "browsers": [{"browser":"Chrome","clicks":3}]
+  "browsers": [{"browser":"Chrome","clicks":3}],
+  "referrers": [{"referrer":"google.com","clicks":2},{"referrer":"Direct","clicks":1}]
 }
 ```
 
@@ -230,28 +255,29 @@ The dashboard includes total links, total clicks, top country, and top device ca
 
 ### Shortener
 
-![SnapLink shortener screenshot placeholder](docs/screenshots/shortener-placeholder.png)
+![SnapLink shortener screenshot placeholder](docs/screenshots/shortener-placeholder.svg)
 
 ### Analytics dashboard
 
-![SnapLink analytics screenshot placeholder](docs/screenshots/analytics-placeholder.png)
+![SnapLink analytics screenshot placeholder](docs/screenshots/analytics-placeholder.svg)
 
-## Operational notes
+## Operational Notes
 
 - `ip-api.com` free-tier lookups use HTTP and are best-effort. Failed, private, or reserved IP lookups are stored as `Unknown` and never block redirects.
 - The click event uses `(shortcode, timestamp)` as its DynamoDB key. Timestamps include microseconds to avoid collisions.
 - The two DynamoDB tables and frontend S3 bucket are retained if the CloudFormation stack is deleted, protecting production data from accidental teardown.
-- The analytics endpoint returns one link because it is scoped to a shortcode. Its `total_links` stat intentionally reflects that selected-link scope.
+- The analytics endpoint returns one link because it is scoped to a shortcode. Its `total_links` value intentionally reflects that single-link scope.
 
-## Local frontend development
+## Local Frontend Development
 
 ```bash
 cd frontend
-cp .env.example .env
-# Set VITE_API_BASE_URL in .env.
+copy .env.example .env
 npm install
 npm run dev
 ```
+
+Set `VITE_API_BASE_URL` in `frontend/.env` before calling the API.
 
 ## License
 

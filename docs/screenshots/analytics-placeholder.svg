@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">SnapLink analytics placeholder</title>
+  <desc id="desc">Illustrated placeholder for the SnapLink analytics dashboard.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <text x="120" y="110" fill="#f8fafc" font-size="42" font-family="Segoe UI, Arial, sans-serif" font-weight="700">SnapLink Analytics Dashboard</text>
+  <text x="120" y="148" fill="#94a3b8" font-size="22" font-family="Segoe UI, Arial, sans-serif">Track clicks over time, by country, and by device.</text>
+
+  <rect x="120" y="190" width="240" height="120" rx="20" fill="#161b22" stroke="#30363d"/>
+  <rect x="390" y="190" width="240" height="120" rx="20" fill="#161b22" stroke="#30363d"/>
+  <rect x="660" y="190" width="240" height="120" rx="20" fill="#161b22" stroke="#30363d"/>
+  <rect x="930" y="190" width="240" height="120" rx="20" fill="#161b22" stroke="#30363d"/>
+
+  <text x="150" y="235" fill="#94a3b8" font-size="18" font-family="Segoe UI, Arial, sans-serif">Total Links</text>
+  <text x="150" y="282" fill="#f8fafc" font-size="34" font-family="Segoe UI, Arial, sans-serif" font-weight="700">1</text>
+  <text x="420" y="235" fill="#94a3b8" font-size="18" font-family="Segoe UI, Arial, sans-serif">Total Clicks</text>
+  <text x="420" y="282" fill="#f8fafc" font-size="34" font-family="Segoe UI, Arial, sans-serif" font-weight="700">248</text>
+  <text x="690" y="235" fill="#94a3b8" font-size="18" font-family="Segoe UI, Arial, sans-serif">Top Country</text>
+  <text x="690" y="282" fill="#f8fafc" font-size="34" font-family="Segoe UI, Arial, sans-serif" font-weight="700">IN</text>
+  <text x="960" y="235" fill="#94a3b8" font-size="18" font-family="Segoe UI, Arial, sans-serif">Top Device</text>
+  <text x="960" y="282" fill="#f8fafc" font-size="34" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Mobile</text>
+
+  <rect x="120" y="350" width="680" height="250" rx="20" fill="#161b22" stroke="#30363d"/>
+  <rect x="830" y="350" width="340" height="250" rx="20" fill="#161b22" stroke="#30363d"/>
+
+  <polyline points="170,540 260,500 350,520 440,430 530,450 620,390 710,410" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="170" y1="560" x2="740" y2="560" stroke="#334155" stroke-width="2"/>
+  <line x1="170" y1="400" x2="170" y2="560" stroke="#334155" stroke-width="2"/>
+  <text x="170" y="385" fill="#f8fafc" font-size="24" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Clicks over time</text>
+
+  <circle cx="935" cy="480" r="72" fill="none" stroke="#38bdf8" stroke-width="28"/>
+  <circle cx="935" cy="480" r="72" fill="none" stroke="#34d399" stroke-width="28" stroke-dasharray="180 272" transform="rotate(-110 935 480)"/>
+  <circle cx="935" cy="480" r="72" fill="none" stroke="#fbbf24" stroke-width="28" stroke-dasharray="90 362" transform="rotate(18 935 480)"/>
+  <text x="860" y="385" fill="#f8fafc" font-size="24" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Device breakdown</text>
+  <text x="1035" y="455" fill="#94a3b8" font-size="18" font-family="Segoe UI, Arial, sans-serif">Mobile</text>
+  <text x="1035" y="485" fill="#94a3b8" font-size="18" font-family="Segoe UI, Arial, sans-serif">Desktop</text>
+  <text x="1035" y="515" fill="#94a3b8" font-size="18" font-family="Segoe UI, Arial, sans-serif">Tablet</text>
+  <text x="120" y="655" fill="#475569" font-size="20" font-family="Segoe UI, Arial, sans-serif">Replace this placeholder with a real dashboard screenshot after production data is available.</text>
+</svg>
