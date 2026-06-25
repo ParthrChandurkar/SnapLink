@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from "react";
+import { getApiBaseUrl, isApiConfigured } from "./api";
 import Shortener from "./components/Shortener";
 
 const Dashboard = lazy(() => import("./components/Dashboard"));
@@ -20,6 +21,8 @@ function Logo() {
 export default function App() {
   const [view, setView] = useState("shorten");
   const [shortcode, setShortcode] = useState(() => localStorage.getItem("snaplink:lastCode") || "");
+  const apiConfigured = isApiConfigured();
+  const apiBaseUrl = getApiBaseUrl();
 
   function handleCreated(link) {
     setShortcode(link.shortcode);
@@ -30,23 +33,28 @@ export default function App() {
     <div className="relative min-h-screen overflow-hidden bg-canvas">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(circle_at_50%_-20%,rgba(56,189,248,0.16),transparent_58%)]" />
       <header className="relative z-10 border-b border-line/70 bg-canvas/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <Logo />
-          <nav className="flex rounded-xl border border-line bg-panel p-1" aria-label="Main navigation">
-            {[
-              ["shorten", "Shorten"],
-              ["analytics", "Analytics"],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setView(id)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition ${view === id ? "bg-slate-700 text-white" : "text-slate-400 hover:text-white"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
+          <div className="flex items-center gap-3 self-start sm:self-auto">
+            <div className={`hidden rounded-full border px-3 py-1 text-xs font-semibold sm:block ${apiConfigured ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300" : "border-amber-400/20 bg-amber-400/10 text-amber-300"}`}>
+              {apiConfigured ? "API connected" : "API not configured"}
+            </div>
+            <nav className="flex rounded-xl border border-line bg-panel p-1" aria-label="Main navigation">
+              {[
+                ["shorten", "Shorten"],
+                ["analytics", "Analytics"],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setView(id)}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${view === id ? "bg-slate-700 text-white" : "text-slate-400 hover:text-white"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
       </header>
 
@@ -54,14 +62,15 @@ export default function App() {
         {view === "shorten" ? (
           <Shortener onCreated={handleCreated} onViewAnalytics={() => setView("analytics")} />
         ) : (
-          <Suspense fallback={<div className="card grid min-h-72 place-items-center text-sm text-slate-500">Loading analytics…</div>}>
+          <Suspense fallback={<div className="card grid min-h-72 place-items-center text-sm text-slate-500">Loading analytics...</div>}>
             <Dashboard initialShortcode={shortcode} />
           </Suspense>
         )}
       </main>
 
       <footer className="relative z-10 border-t border-line/60 px-5 py-8 text-center text-sm text-slate-500">
-        Fast links, useful signals. Built on AWS serverless infrastructure.
+        <p>Fast links, useful signals. Built on AWS serverless infrastructure.</p>
+        {apiBaseUrl && <p className="mt-2 font-mono text-xs text-slate-600">{apiBaseUrl}</p>}
       </footer>
     </div>
   );

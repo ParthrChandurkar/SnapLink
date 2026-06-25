@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { shortenUrl } from "../api";
+import { isApiConfigured, shortenUrl } from "../api";
 
 export default function Shortener({ onCreated, onViewAnalytics }) {
   const [url, setUrl] = useState("");
@@ -7,9 +7,15 @@ export default function Shortener({ onCreated, onViewAnalytics }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const apiConfigured = isApiConfigured();
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (!apiConfigured) {
+      setError("Set VITE_API_BASE_URL before trying to create short links.");
+      return;
+    }
+
     setError("");
     setCopied(false);
     setLoading(true);
@@ -66,12 +72,18 @@ export default function Shortener({ onCreated, onViewAnalytics }) {
         </div>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !apiConfigured}
           className="mt-3 h-14 w-full rounded-xl bg-accent px-7 font-bold text-canvas transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0 sm:w-auto"
         >
-          {loading ? "Snapping…" : "Shorten URL"}
+          {loading ? "Snapping..." : "Shorten URL"}
         </button>
       </form>
+
+      {!apiConfigured && (
+        <p className="mt-4 text-sm text-amber-300">
+          Connect the frontend to your deployed API by setting <code className="rounded bg-panel px-1.5 py-0.5 text-xs text-amber-200">VITE_API_BASE_URL</code>.
+        </p>
+      )}
 
       {error && <p role="alert" className="mt-4 text-sm text-rose-400">{error}</p>}
 
@@ -113,4 +125,3 @@ export default function Shortener({ onCreated, onViewAnalytics }) {
     </section>
   );
 }
-

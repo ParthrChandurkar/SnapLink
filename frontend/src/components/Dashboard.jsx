@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { getAnalytics } from "../api";
+import { getAnalytics, isApiConfigured } from "../api";
 import ClicksChart from "./ClicksChart";
 import DeviceChart from "./DeviceChart";
 import GeoChart from "./GeoChart";
@@ -10,9 +10,10 @@ export default function Dashboard({ initialShortcode }) {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const apiConfigured = isApiConfigured();
 
   const loadAnalytics = useCallback(async (code) => {
-    if (!code) return;
+    if (!code || !apiConfigured) return;
     setLoading(true);
     setError("");
     try {
@@ -25,10 +26,10 @@ export default function Dashboard({ initialShortcode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiConfigured]);
 
   useEffect(() => {
-    // Loading remote data is the external synchronization performed by this effect.
+    // Loading analytics for the active code is the external synchronization performed here.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAnalytics(shortcode);
   }, [shortcode, loadAnalytics]);
@@ -36,8 +37,11 @@ export default function Dashboard({ initialShortcode }) {
   function handleSubmit(event) {
     event.preventDefault();
     const cleanCode = input.trim();
-    if (cleanCode === shortcode) loadAnalytics(cleanCode);
-    else setShortcode(cleanCode);
+    if (cleanCode === shortcode) {
+      loadAnalytics(cleanCode);
+      return;
+    }
+    setShortcode(cleanCode);
   }
 
   const stats = analytics ? [
@@ -66,18 +70,28 @@ export default function Dashboard({ initialShortcode }) {
             required
             className="min-w-0 flex-1 rounded-xl border border-line bg-panel px-4 py-3 text-sm text-white placeholder:text-slate-600"
           />
-          <button type="submit" disabled={loading} className="rounded-xl bg-accent px-5 text-sm font-bold text-canvas hover:bg-sky-300 disabled:opacity-60">
-            {loading ? "Loading…" : "Load"}
+          <button type="submit" disabled={loading || !apiConfigured} className="rounded-xl bg-accent px-5 text-sm font-bold text-canvas hover:bg-sky-300 disabled:opacity-60">
+            {loading ? "Loading..." : "Load"}
           </button>
         </form>
       </div>
 
+      {!apiConfigured && (
+        <div className="card mt-10 p-8 text-center">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-amber-400/10 text-amber-300">API</div>
+          <h2 className="mt-4 font-semibold text-white">Connect the frontend to your AWS API first</h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Set <code className="rounded bg-canvas px-1.5 py-0.5 text-xs text-slate-300">VITE_API_BASE_URL</code> to your deployed API Gateway URL, then rebuild the frontend.
+          </p>
+        </div>
+      )}
+
       {error && <div role="alert" className="mt-8 rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 text-sm text-rose-300">{error}</div>}
 
-      {!analytics && !error && !loading && (
+      {!analytics && !error && !loading && apiConfigured && (
         <div className="card mt-10 grid min-h-72 place-items-center p-8 text-center">
           <div>
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-accent/10 text-accent">↗</div>
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-accent/10 text-accent">Go</div>
             <h2 className="mt-4 font-semibold text-white">Enter a shortcode to begin</h2>
             <p className="mt-2 text-sm text-slate-500">Create a link first, or paste the six-character code above.</p>
           </div>
@@ -88,7 +102,7 @@ export default function Dashboard({ initialShortcode }) {
         <div className="mt-10">
           <div className="mb-5 flex min-w-0 items-center gap-2 text-sm text-slate-500">
             <span className="shrink-0 rounded-md bg-accent/10 px-2 py-1 font-mono text-accent">/{analytics.shortcode}</span>
-            <span aria-hidden="true">→</span>
+            <span aria-hidden="true">-&gt;</span>
             <span className="truncate">{analytics.original_url}</span>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

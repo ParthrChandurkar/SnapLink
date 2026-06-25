@@ -1,9 +1,21 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
-async function request(path, options = {}) {
+export function getApiBaseUrl() {
+  return API_BASE_URL;
+}
+
+export function isApiConfigured() {
+  return Boolean(API_BASE_URL);
+}
+
+function assertApiConfigured() {
   if (!API_BASE_URL) {
-    throw new Error("VITE_API_BASE_URL is not configured.");
+    throw new Error("Set VITE_API_BASE_URL to your deployed SnapLink API Gateway URL.");
   }
+}
+
+async function request(path, options = {}) {
+  assertApiConfigured();
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -31,4 +43,3 @@ export function shortenUrl(url) {
 export function getAnalytics(shortcode) {
   return request(`/analytics/${encodeURIComponent(shortcode)}`);
 }
-
