@@ -352,6 +352,57 @@ The dashboard includes total links, total clicks, top country, and top device ca
 - The two DynamoDB tables and frontend S3 bucket are retained if the CloudFormation stack is deleted, protecting production data from accidental teardown.
 - The analytics endpoint returns one link because it is scoped to a shortcode. Its `total_links` value intentionally reflects that single-link scope.
 
+## Troubleshooting
+
+### `Unable to locate credentials`
+
+This means the AWS CLI cannot find credentials for the current shell session.
+
+```bash
+aws configure
+aws sts get-caller-identity
+```
+
+If `aws sts get-caller-identity` fails, SAM deploys will fail too.
+
+### `VITE_API_BASE_URL` is not configured
+
+The frontend can render without AWS, but it cannot shorten URLs or load analytics until the API base URL is set.
+
+1. Deploy the SAM stack.
+2. Read the `ApiUrl` output from CloudFormation.
+3. Set that value in `frontend/.env` as `VITE_API_BASE_URL`.
+4. Restart the Vite dev server or rebuild the frontend.
+
+### CORS errors in the browser
+
+If the frontend loads but API requests fail in the browser console:
+
+1. Confirm the deployed frontend domain matches the SAM `CorsOrigin` value.
+2. Redeploy the stack if the frontend URL changed.
+3. Make sure you are calling the same `ApiUrl` that belongs to the current stack.
+
+### CloudFront still shows an older frontend
+
+If the frontend deploy succeeded but the browser still shows the old UI:
+
+```bash
+aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
+```
+
+Then hard-refresh the browser after the invalidation completes.
+
+### Redirect works but country stays `Unknown`
+
+That is expected for:
+
+- Private IPs
+- Localhost testing
+- Failed `ip-api.com` lookups
+- Reserved or loopback addresses
+
+The redirect path does not block on geolocation, so the link still functions even when the geo lookup does not.
+
 ## Local Frontend Development
 
 ```bash
