@@ -216,6 +216,42 @@ Optional secrets:
 
 Every push to `main` validates and deploys SAM, discovers stack outputs, lints/builds React, syncs the build to S3, uploads `index.html` with no-cache revalidation, and invalidates CloudFront.
 
+## Configuration Reference
+
+### Frontend environment variables
+
+| Variable | Required | Example | Purpose |
+| --- | --- | --- | --- |
+| `VITE_API_BASE_URL` | Yes for live API calls | `https://abc123.execute-api.us-east-1.amazonaws.com` | Base URL used by the React app for `POST /shorten` and `GET /analytics/{shortcode}`. |
+
+### SAM deployment parameters
+
+| Parameter | Required | Example | Purpose |
+| --- | --- | --- | --- |
+| `CorsOrigin` | Recommended | `https://snaplink-eight.vercel.app` | Allowed browser origin for API Gateway CORS responses. |
+| `ShortBaseUrl` | Optional | `https://go.yourdomain.com` | Public base URL returned in generated short links. |
+| `AlarmEmail` | Optional | `you@example.com` | Receives SNS email notifications for the Lambda error-rate alarm. |
+
+### CloudFormation outputs
+
+| Output | Example | Used for |
+| --- | --- | --- |
+| `ApiUrl` | `https://abc123.execute-api.us-east-1.amazonaws.com` | Set `VITE_API_BASE_URL` and test the API manually. |
+| `FrontendBucketName` | `snaplink-frontend-prod` | Target bucket for `aws s3 sync`. |
+| `CloudFrontDistributionId` | `E123ABC456XYZ` | Required for cache invalidation after a frontend deploy. |
+| `FrontendUrl` | `https://d123.cloudfront.net` | Final hosted frontend URL. |
+
+### GitHub Actions secrets
+
+| Secret | Required | Purpose |
+| --- | --- | --- |
+| `AWS_ACCESS_KEY_ID` | Yes | Authenticates the GitHub Actions runner with AWS. |
+| `AWS_SECRET_ACCESS_KEY` | Yes | Complements the access key for AWS authentication. |
+| `AWS_REGION` | Yes | Defines the deployment region used by the workflow. |
+| `CORS_ORIGIN` | Optional | Supplies the SAM `CorsOrigin` parameter during CI deploys. |
+| `SHORT_BASE_URL` | Optional | Supplies the SAM `ShortBaseUrl` parameter during CI deploys. |
+| `ALARM_EMAIL` | Optional | Supplies the SAM `AlarmEmail` parameter during CI deploys. |
+
 ## API Documentation
 
 All JSON responses include CORS headers. Replace `API_URL` below with the `ApiUrl` CloudFormation output.
