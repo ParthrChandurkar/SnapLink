@@ -4,6 +4,22 @@ SnapLink is a production-ready, serverless URL shortener with click analytics. I
 
 > **Live demo:** [https://snaplink-eight.vercel.app](https://snaplink-eight.vercel.app)
 
+## Table of Contents
+
+- [Architecture](#architecture)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [Deployment](#deployment)
+- [Vercel Frontend Deployment](#vercel-frontend-deployment)
+- [GitHub Actions](#github-actions)
+- [API Documentation](#api-documentation)
+- [Analytics](#analytics)
+- [Operational Notes](#operational-notes)
+- [Local Frontend Development](#local-frontend-development)
+- [License](#license)
+
 ## Architecture
 
 ```mermaid
@@ -60,6 +76,38 @@ snaplink/
 |-- .github/workflows/deploy.yml
 `-- README.md
 ```
+
+## Quick Start
+
+If you want the fastest path from clone to a working frontend, use this order.
+
+### Windows PowerShell
+
+```powershell
+git clone https://github.com/ParthrChandurkar/SnapLink.git
+cd .\SnapLink
+sam validate --lint --template-file infrastructure/template.yaml
+sam build --template-file infrastructure/template.yaml
+cd .\frontend
+copy .env.example .env
+npm install
+npm run dev
+```
+
+### macOS or Linux
+
+```bash
+git clone https://github.com/ParthrChandurkar/SnapLink.git
+cd SnapLink
+sam validate --lint --template-file infrastructure/template.yaml
+sam build --template-file infrastructure/template.yaml
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+At that point, the frontend starts locally. The API-dependent actions begin working after you deploy the AWS backend and set `VITE_API_BASE_URL`.
 
 ## Prerequisites
 
