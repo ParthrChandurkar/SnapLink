@@ -443,6 +443,36 @@ That is expected for:
 
 The redirect path does not block on geolocation, so the link still functions even when the geo lookup does not.
 
+## Production Checklist
+
+Before calling the deployment production-ready, verify each of these items:
+
+- AWS credentials are configured for both local deployment and GitHub Actions.
+- `CorsOrigin` matches the final frontend domain exactly.
+- `VITE_API_BASE_URL` points to the currently deployed API Gateway URL.
+- CloudWatch alarm email subscriptions have been confirmed.
+- The frontend was synced to S3 and CloudFront was invalidated after the latest build.
+- Redirects return `301` responses correctly for valid shortcodes.
+- Analytics records appear in DynamoDB after real clicks.
+- Browser console shows no CORS or failed network requests.
+- README placeholders are replaced with real screenshots if you are showcasing the project publicly.
+
+## Known Limitations
+
+- Geolocation uses the free `ip-api.com` tier, which is best-effort and HTTP-based.
+- Analytics are scoped per shortcode; there is no global admin dashboard yet.
+- The current frontend assumes a single API base URL at build time.
+- There is no authenticated user system, team workspace, or per-user link ownership yet.
+- Custom branded domains require additional DNS and API Gateway domain mapping outside the base template.
+
+## Future Improvements
+
+- Add link expiration, password protection, and QR code generation.
+- Add a global analytics overview page across all links.
+- Add authentication and user-owned workspaces.
+- Replace free geolocation with a production-grade provider when traffic grows.
+- Add automated backend tests and contract tests for the API routes.
+
 ## Local Frontend Development
 
 ```bash
