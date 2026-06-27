@@ -43,6 +43,46 @@ flowchart LR
 
 The shorten Lambda uses a conditional `PutItem`, which handles collision protection and persistence in one call. The redirect Lambda reads the URL, records the event, atomically increments the counter, and returns a `301`. A separate read-only analytics Lambda keeps dashboard permissions isolated from the write path.
 
+## Request Lifecycle
+
+### Link creation flow
+
+1. The React frontend sends `POST /shorten` with the original URL.
+2. API Gateway forwards the request to the shorten Lambda.
+3. The Lambda validates the URL, generates a six-character code, and writes it to DynamoDB with a conditional `PutItem`.
+4. The API returns the generated short URL to the frontend.
+
+### Redirect and analytics flow
+
+1. A visitor opens `GET /{shortcode}`.
+2. The redirect Lambda looks up the destination URL in the `urls` table.
+3. It parses device, browser, IP, and referrer metadata from the request.
+4. It writes a click event to the `clicks` table.
+5. It atomically increments `click_count` on the matching URL record.
+6. It returns a `301` redirect to the original destination.
+
+### Dashboard analytics flow
+
+1. The frontend requests `GET /analytics/{shortcode}`.
+2. The analytics Lambda reads the matching URL record.
+3. It queries all click events for that shortcode from DynamoDB.
+4. It aggregates daily clicks, countries, devices, browsers, and referrers.
+5. The frontend renders those results into summary cards and charts.
+
+## Component Responsibilities
+
+| Component | Responsibility | Why it exists separately |
+| --- | --- | --- |
+| React frontend | Shorten URLs and visualize analytics | Keeps the user experience fast, responsive, and easy to host on static infrastructure. |
+| API Gateway HTTP API | Public entry point for all backend routes | Provides routing, CORS, and a single HTTPS surface for the app. |
+| Shorten Lambda | Validate URLs and create shortcodes | Keeps link creation logic isolated from redirect and analytics concerns. |
+| Redirect Lambda | Resolve shortcodes and capture click events | Keeps the high-traffic redirect path optimized and permission-scoped. |
+| Analytics Lambda | Aggregate dashboard data | Prevents the redirect path from needing broader read/query permissions. |
+| DynamoDB `urls` table | Store link metadata and click counters | Provides low-latency key-value lookups by shortcode. |
+| DynamoDB `clicks` table | Store one row per click event | Supports time-series and segmentation analytics. |
+| S3 + CloudFront | Serve the frontend | Delivers the static app globally with caching and HTTPS. |
+| CloudWatch + SNS | Logs, metrics, and alerts | Makes failures observable without adding a separate monitoring stack. |
+
 ## Features
 
 - Cryptographically random, fixed-width base62 shortcodes
