@@ -454,6 +454,52 @@ npm run dev
 
 Set `VITE_API_BASE_URL` in `frontend/.env` before calling the API.
 
+## Local Backend Testing
+
+If you want to test the Lambdas locally before deploying to AWS, use SAM CLI.
+
+### Prerequisites for local API emulation
+
+- Docker Desktop running locally
+- AWS SAM CLI installed
+- A test `.env` or environment variable source for the table names if you invoke functions manually
+
+### Start the local API
+
+```bash
+sam build --template-file infrastructure/template.yaml
+sam local start-api --template .aws-sam/build/template.yaml
+```
+
+By default, SAM serves the local API at `http://127.0.0.1:3000`.
+
+### Test the shorten endpoint locally
+
+```bash
+curl -X POST "http://127.0.0.1:3000/shorten" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/docs/snaplink"}'
+```
+
+### Test the analytics endpoint locally
+
+```bash
+curl "http://127.0.0.1:3000/analytics/abc123"
+```
+
+### Frontend plus local API workflow
+
+1. Start `sam local start-api`.
+2. Set `VITE_API_BASE_URL=http://127.0.0.1:3000` in `frontend/.env`.
+3. Run `npm run dev` inside `frontend`.
+4. Open the Vite local URL and test the full shorten and analytics flow.
+
+### Notes about local analytics behavior
+
+- Redirect analytics are more realistic in AWS than on localhost because proxy headers and public IP geolocation are limited locally.
+- `country` may show `Unknown` during local testing.
+- CORS and frontend integration can still be validated fully with the local API.
+
 ## License
 
 MIT
