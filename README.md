@@ -7,6 +7,7 @@ SnapLink is a production-ready, serverless URL shortener with click analytics. I
 ## Table of Contents
 
 - [Architecture](#architecture)
+- [Portfolio Highlights](#portfolio-highlights)
 - [Features](#features)
 - [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
@@ -42,6 +43,25 @@ flowchart LR
 ```
 
 The shorten Lambda uses a conditional `PutItem`, which handles collision protection and persistence in one call. The redirect Lambda reads the URL, records the event, atomically increments the counter, and returns a `301`. A separate read-only analytics Lambda keeps dashboard permissions isolated from the write path.
+
+## Portfolio Highlights
+
+If you are presenting SnapLink in a portfolio, resume, or interview, these are the strongest talking points:
+
+- Designed and implemented a full serverless URL shortener with analytics on AWS using Lambda, API Gateway, DynamoDB, S3, and CloudFront.
+- Built a responsive React dashboard that visualizes click trends, countries, device types, browsers, and referrers.
+- Applied least-privilege IAM, conditional writes, atomic counters, and CloudWatch alerting to make the backend production-minded.
+- Structured the project for repeatable deployment with AWS SAM and GitHub Actions CI/CD.
+
+### One-line project summary
+
+SnapLink is a serverless link-shortening platform that combines fast redirects with dashboard-ready click intelligence.
+
+### Resume-ready bullets
+
+- Built a production-style URL shortener on AWS serverless infrastructure using Python Lambdas, API Gateway HTTP API, DynamoDB, S3, and CloudFront.
+- Implemented click analytics collection for country, device, browser, timestamp, and referrer, then surfaced those metrics in a React dashboard with Recharts.
+- Automated build and deployment workflows using AWS SAM and GitHub Actions, including frontend asset publishing and CloudFront cache invalidation.
 
 ## Request Lifecycle
 
