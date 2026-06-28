@@ -10,6 +10,7 @@ SnapLink is a production-ready, serverless URL shortener with click analytics. I
 - [Portfolio Highlights](#portfolio-highlights)
 - [Features](#features)
 - [Project Structure](#project-structure)
+- [Data Model](#data-model)
 - [Quick Start](#quick-start)
 - [Prerequisites](#prerequisites)
 - [Deployment](#deployment)
@@ -136,6 +137,60 @@ snaplink/
 |-- .github/workflows/deploy.yml
 `-- README.md
 ```
+
+## Data Model
+
+SnapLink uses two DynamoDB tables: one for the shortened URLs themselves and one for click events.
+
+### `urls` table
+
+| Attribute | Type | Example | Purpose |
+| --- | --- | --- | --- |
+| `shortcode` | String | `aZ91Kq` | Partition key used to resolve short links quickly. |
+| `original_url` | String | `https://example.com/blog/serverless` | Full destination URL for the redirect. |
+| `created_at` | String | `2026-06-22T10:30:00.000000Z` | UTC creation timestamp. |
+| `click_count` | Number | `42` | Aggregate click counter updated atomically by the redirect Lambda. |
+
+Sample item:
+
+```json
+{
+  "shortcode": "aZ91Kq",
+  "original_url": "https://example.com/blog/serverless",
+  "created_at": "2026-06-22T10:30:00.000000Z",
+  "click_count": 42
+}
+```
+
+### `clicks` table
+
+| Attribute | Type | Example | Purpose |
+| --- | --- | --- | --- |
+| `shortcode` | String | `aZ91Kq` | Partition key that groups all click events for one link. |
+| `timestamp` | String | `2026-06-22T10:35:14.123456Z` | Sort key used for time ordering and chart aggregation. |
+| `country` | String | `IN` | Country code derived from the visitor IP when available. |
+| `device` | String | `Mobile` | Device type parsed from the user agent. |
+| `browser` | String | `Chrome` | Browser family parsed from the user agent. |
+| `referrer` | String | `google.com` | Referring hostname or `Direct`. |
+
+Sample item:
+
+```json
+{
+  "shortcode": "aZ91Kq",
+  "timestamp": "2026-06-22T10:35:14.123456Z",
+  "country": "IN",
+  "device": "Mobile",
+  "browser": "Chrome",
+  "referrer": "google.com"
+}
+```
+
+### Why this split works well
+
+- The `urls` table keeps redirect lookups simple and low-latency.
+- The `clicks` table preserves one event per visit for charting and segmentation.
+- The aggregate `click_count` avoids querying the full click history for the redirect path.
 
 ## Quick Start
 
