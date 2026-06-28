@@ -19,6 +19,7 @@ SnapLink is a production-ready, serverless URL shortener with click analytics. I
 - [API Documentation](#api-documentation)
 - [Analytics](#analytics)
 - [Operational Notes](#operational-notes)
+- [Security and Privacy Notes](#security-and-privacy-notes)
 - [Local Frontend Development](#local-frontend-development)
 - [License](#license)
 
@@ -466,6 +467,30 @@ The dashboard includes total links, total clicks, top country, and top device ca
 - The click event uses `(shortcode, timestamp)` as its DynamoDB key. Timestamps include microseconds to avoid collisions.
 - The two DynamoDB tables and frontend S3 bucket are retained if the CloudFormation stack is deleted, protecting production data from accidental teardown.
 - The analytics endpoint returns one link because it is scoped to a shortcode. Its `total_links` value intentionally reflects that single-link scope.
+
+## Security and Privacy Notes
+
+### Security decisions in this project
+
+- Each Lambda uses its own IAM role with only the permissions required for that function.
+- The frontend is served privately from S3 through CloudFront Origin Access Control instead of public bucket hosting.
+- URL creation uses validation plus collision-safe conditional writes in DynamoDB.
+- Redirect counting uses atomic updates so concurrent traffic does not corrupt counters.
+- CloudWatch logging and alarms provide basic operational visibility for failures.
+
+### Privacy considerations
+
+- SnapLink stores analytics metadata such as country, device, browser, timestamp, and referrer for each click event.
+- The current implementation does not persist raw IP addresses in DynamoDB.
+- Country is derived at request time through a third-party geolocation lookup and stored as a country code when available.
+- Referrers are normalized before storage to reduce unnecessary detail.
+
+### Things to consider before real production use
+
+- Add a clear privacy notice if you deploy this publicly.
+- Review whether third-party geolocation calls meet your compliance needs.
+- Add rate limiting, abuse protection, and possibly bot filtering for public traffic.
+- Consider adding WAF, custom domains with TLS, and stronger monitoring if usage grows.
 
 ## Troubleshooting
 
