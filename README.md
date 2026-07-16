@@ -2,10 +2,28 @@
 
 SnapLink is a production-ready, serverless URL shortener with click analytics. It creates compact six-character links, redirects visitors with low latency, and presents country, device, browser, referrer, and time-series data in a responsive React dashboard.
 
-> **Live demo:** [https://snaplink-eight.vercel.app](https://snaplink-eight.vercel.app)
+> 🚀 **Live demo:** [https://snaplink-eight.vercel.app](https://snaplink-eight.vercel.app)
+
+## About SnapLink
+
+SnapLink is built for the classic “shorten, share, track” workflow, but with a clean AWS serverless architecture behind it.
+
+- 🔗 Turn long URLs into clean short links instantly
+- 📊 Track clicks by country, device, browser, referrer, and time
+- ☁️ Deploy on AWS with Lambda, API Gateway, DynamoDB, S3, and CloudFront
+- 🎯 Showcase a full-stack project that feels strong in portfolios and interviews
+
+### At a glance
+
+- 🧠 **Project type:** Full-stack serverless web app
+- 🛠️ **Backend:** Python + AWS Lambda + DynamoDB
+- 🎨 **Frontend:** React + Tailwind + Recharts
+- 🚢 **Deployment:** AWS SAM, GitHub Actions, Vercel-ready frontend
+- 📈 **Core value:** Fast redirects with useful analytics
 
 ## Table of Contents
 
+- [About SnapLink](#about-snaplink)
 - [Architecture](#architecture)
 - [Portfolio Highlights](#portfolio-highlights)
 - [Features](#features)
