@@ -38,10 +38,21 @@ SnapLink is more than a basic link shortener. It is a compact product-style buil
 - 🔄 CI/CD and deployment workflows
 - 🧱 Clean project structuring from frontend to infrastructure
 
+## Perfect For
+
+SnapLink fits especially well when you want a project that feels product-like, deployable, and easy to demo.
+
+- 🎓 **Students and job seekers:** strong for resumes, portfolios, and interview walkthroughs
+- 🧪 **AWS learners:** useful for practicing Lambda, API Gateway, DynamoDB, and CloudFront together
+- 🛠️ **Frontend developers:** good example of connecting a React UI to a real serverless backend
+- 📈 **Analytics-focused builds:** shows how event data can be captured and turned into dashboard views
+- 🚀 **Hackathon or showcase projects:** simple concept, strong execution, and easy to explain quickly
+
 ## Table of Contents
 
 - [About SnapLink](#about-snaplink)
 - [Why SnapLink Stands Out](#why-snaplink-stands-out)
+- [Perfect For](#perfect-for)
 - [Architecture](#architecture)
 - [Portfolio Highlights](#portfolio-highlights)
 - [Features](#features)
