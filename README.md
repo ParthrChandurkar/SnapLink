@@ -21,9 +21,27 @@ SnapLink is built for the classic “shorten, share, track” workflow, but with
 - 🚢 **Deployment:** AWS SAM, GitHub Actions, Vercel-ready frontend
 - 📈 **Core value:** Fast redirects with useful analytics
 
+## Why SnapLink Stands Out
+
+SnapLink is more than a basic link shortener. It is a compact product-style build that shows backend architecture, frontend visualization, cloud deployment, and operational thinking in one repo.
+
+- ⚡ **Fast user flow:** paste a URL, generate a short link, and copy it immediately
+- 📍 **Analytics built in:** every click becomes useful signal instead of just traffic
+- 🔐 **Production-minded setup:** least-privilege IAM, atomic counters, and structured logging
+- 🧩 **Strong project story:** easy to explain in interviews because the system has clear moving parts
+
+### Great for showcasing
+
+- 💼 Full-stack engineering skills
+- ☁️ AWS serverless architecture knowledge
+- 📊 Data visualization and dashboard work
+- 🔄 CI/CD and deployment workflows
+- 🧱 Clean project structuring from frontend to infrastructure
+
 ## Table of Contents
 
 - [About SnapLink](#about-snaplink)
+- [Why SnapLink Stands Out](#why-snaplink-stands-out)
 - [Architecture](#architecture)
 - [Portfolio Highlights](#portfolio-highlights)
 - [Features](#features)
