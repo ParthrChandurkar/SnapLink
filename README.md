@@ -1,6 +1,6 @@
 # SnapLink
 
-SnapLink is a production ready, serverless URL shortener with click analytics. It creates compact six-character links, redirects visitors with low latency, and presents country, device, browser, referrer, and time-series data in a responsive React dashboard.
+SnapLink is a production-ready, serverless URL shortener with click analytics. It creates compact six-character links, redirects visitors with low latency, and presents country, device, browser, referrer, and time-series data in a responsive React dashboard.
 
 > 🚀 **Live demo:** [https://snaplink-eight.vercel.app](https://snaplink-eight.vercel.app)
 
